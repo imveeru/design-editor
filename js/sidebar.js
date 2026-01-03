@@ -28,14 +28,26 @@ export function initSidebar() {
 
     if (layersHeader && layersPanel && layersIcon) {
         let isCollapsed = false;
+        const container = layersHeader.parentElement;
+
+        // Initial Style Setup for Animation
+        container.style.transition = 'flex-basis 0.3s ease, min-height 0.3s ease, height 0.3s ease';
+
         layersHeader.onclick = () => {
             isCollapsed = !isCollapsed;
             if (isCollapsed) {
+                // Collapse: Only header visible.
                 layersPanel.style.display = 'none';
+                container.style.height = 'auto';
+                container.style.minHeight = '0';
+                container.style.flex = '0 0 auto'; // Prevent growing
                 layersIcon.style.transform = 'rotate(-90deg)';
-                // Optional: Adjust parent container height if needed, but flex should handle it.
             } else {
+                // Expand: 40% height as requested
                 layersPanel.style.display = 'block';
+                container.style.height = '40%';
+                container.style.minHeight = '180px'; // Restore basic min-height
+                container.style.flex = 'none'; // Force height usage
                 layersIcon.style.transform = 'rotate(0deg)';
             }
         };
@@ -523,7 +535,7 @@ function createTextControls(layer) {
     fontContainer.className = 'relative group/font-picker';
 
     const fontLabel = document.createElement('label');
-    fontLabel.className = 'block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide';
+    fontLabel.className = 'block text-[10px] font-semibold text-gray-400 mb-1.5 uppercase tracking-wide';
     fontLabel.textContent = 'Font Family';
     fontContainer.appendChild(fontLabel);
 
@@ -542,7 +554,7 @@ function createTextControls(layer) {
 
     // Dropdown Container
     const dropdown = document.createElement('div');
-    dropdown.className = 'absolute top-full left-0 w-full mt-2 bg-white dark:bg-[#2C2C2E] rounded-xl shadow-2xl border border-gray-100 dark:border-white/10 z-[100] hidden flex flex-col max-h-[400px] animate-in fade-in zoom-in-95 duration-100 origin-top';
+    dropdown.className = 'absolute top-full left-0 w-full mt-2 bg-white dark:bg-[#2C2C2E] rounded-xl shadow-2xl border border-gray-100 dark:border-white/10 z-[100] hidden flex flex-col max-h-[250px] animate-in fade-in zoom-in-95 duration-100 origin-top';
 
     // Search Bar
     const searchContainer = document.createElement('div');
@@ -557,7 +569,7 @@ function createTextControls(layer) {
 
     // Categories Filter (Scrollable horizontal)
     const filterContainer = document.createElement('div');
-    filterContainer.className = 'flex overflow-x-auto gap-1 p-2 border-b border-gray-100 dark:border-white/5 no-scrollbar';
+    filterContainer.className = 'flex overflow-x-auto gap-1 p-3 border-b border-gray-100 dark:border-white/5 no-scrollbar';
 
     const categories = ['All', 'Sans Serif', 'Serif', 'Display', 'Handwriting', 'Monospace'];
     let activeCategory = 'All';
@@ -828,18 +840,18 @@ function createFillControls(layer) {
     div.appendChild(label);
 
     const colorWrapper = document.createElement('div');
-    colorWrapper.className = 'flex items-center gap-3 p-2 bg-gray-50 dark:bg-white/5 rounded-lg';
+    colorWrapper.className = 'flex items-center gap-2 bg-gray-50 dark:bg-white/5 pr-2 rounded-lg border border-transparent hover:border-blue-500/50 transition-colors w-full';
 
-    const input = document.createElement('input');
-    input.type = 'color';
+    const colorInput = document.createElement('input');
+    colorInput.type = 'color';
     // For SVG, we use content.color if available, else fall back
     const currentColor = layer.content.color || fill.colors[0];
-    input.value = currentColor;
-    input.className = 'w-8 h-8 rounded-full cursor-pointer border ring-1 ring-black/10 dark:ring-white/10 p-0 overflow-hidden';
-    input.onchange = (e) => {
-        const val = e.target.value;
-        const newFill = { ...fill, colors: [val] };
+    colorInput.value = currentColor;
+    colorInput.className = 'w-8 h-8 p-0 border-none bg-transparent cursor-pointer rounded-l-lg';
 
+    // Sync function
+    const updateColor = (val) => {
+        const newFill = { ...fill, colors: [val] };
         let updates = {};
 
         // Update both style and content color for SVG
@@ -848,27 +860,23 @@ function createFillControls(layer) {
                 content: { ...layer.content, color: val },
                 style: { ...layer.style, fill: newFill }
             };
-        } else if (layer.type === LAYER_TYPES.BACKGROUND || layer.content.type === 'background') {
-            updates = {
-                content: { ...layer.content, fill: newFill },
-                style: { ...layer.style, fill: newFill }
-            };
+        } else {
+            updates = { style: { ...layer.style, fill: newFill } };
         }
-
         store.updateLayer(layer.id, updates);
-
-        // Update label
-        hexLabel.textContent = val.toUpperCase();
+        hexLabel.textContent = val;
     };
 
-    // Hex Code Display
-    const hexLabel = document.createElement('span');
-    hexLabel.className = 'text-sm font-mono text-gray-700 dark:text-gray-300';
-    hexLabel.textContent = currentColor.toUpperCase();
+    colorInput.onchange = (e) => updateColor(e.target.value);
 
-    colorWrapper.appendChild(input);
+    const hexLabel = document.createElement('span');
+    hexLabel.className = 'text-xs font-mono text-gray-600 dark:text-gray-300 uppercase';
+    hexLabel.textContent = currentColor;
+
+    colorWrapper.appendChild(colorInput);
     colorWrapper.appendChild(hexLabel);
     div.appendChild(colorWrapper);
+
 
     // SVG Specific Controls: Upload & Edit
     if (layer.type === LAYER_TYPES.SVG) {
@@ -1117,9 +1125,17 @@ function renderLayers() {
         // Visibility Class: if not visible/locked, dim it.
         const opacityClass = (!layer.visible || layer.locked) && !isSelected ? 'opacity-50' : '';
 
+        // Layer Type Icons
+        let typeIcon = 'ph-square';
+        if (layer.type === LAYER_TYPES.TEXT) typeIcon = 'ph-text-t';
+        else if (layer.type === LAYER_TYPES.IMAGE) typeIcon = 'ph-image';
+        else if (layer.type === LAYER_TYPES.SVG) typeIcon = 'ph-bezier-curve';
+        else if (layer.type === LAYER_TYPES.BACKGROUND) typeIcon = 'ph-frame-corners';
+
         div.innerHTML = `
             <div class="flex items-center gap-2 overflow-hidden pointer-events-none w-full ${opacityClass}">
                 <span class="cursor-grab text-gray-400 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity text-[10px]">⋮⋮</span>
+                <i class="ph ${typeIcon} text-gray-500 text-sm"></i>
                 <span class="truncate font-medium flex-1">${layer.name || TYPE_NAMES[layer.type] || 'Layer'}</span>
             </div>
 

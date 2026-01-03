@@ -168,34 +168,93 @@ function setupThemeToggle() {
 /**
  * Zoom Controls
  */
+// Global Zoom Setter
+window.setZoom = (z) => {
+    let currentZoom = Math.min(Math.max(z, 0.1), 5); // Clamping 10% to 500%
+    const container = document.getElementById('canvas-container');
+    const label = document.getElementById('zoom-label');
+
+    container.style.transform = `scale(${currentZoom})`;
+    label.textContent = `${Math.round(currentZoom * 100)}%`;
+    store.setState({ canvas: { ...store.get().canvas, zoom: currentZoom } }, false);
+};
+
 function setupZoomControls() {
     const zoomIn = document.getElementById('zoom-in');
     const zoomOut = document.getElementById('zoom-out');
     const label = document.getElementById('zoom-label');
-    const workArea = document.getElementById('workspace-area');
-    const container = document.getElementById('canvas-container');
-
-    // Currently, zoom in store is just data, we need to apply it visually.
-    // The spec implies canvas scaling. 
-    // Simple implementation: Scale the CSS transform of the container.
+    const zoomContainer = document.getElementById('zoom-container');
+    const zoomDropdown = document.getElementById('zoom-dropdown');
+    const zoomFit = document.getElementById('zoom-fit');
 
     let currentZoom = store.get().canvas.zoom;
-    container.style.transform = `scale(${currentZoom})`;
+    // Init
+    document.getElementById('canvas-container').style.transform = `scale(${currentZoom})`;
     label.textContent = `${Math.round(currentZoom * 100)}%`;
 
-    const updateZoom = (z) => {
-        currentZoom = z;
-        container.style.transform = `scale(${currentZoom})`;
-        label.textContent = `${Math.round(currentZoom * 100)}%`;
-        store.setState({ canvas: { ...store.get().canvas, zoom: currentZoom } }, false);
-    };
+    // Button Logic
+    zoomIn.addEventListener('click', () => window.setZoom(store.get().canvas.zoom + 0.1));
+    zoomOut.addEventListener('click', () => window.setZoom(store.get().canvas.zoom - 0.1));
 
-    zoomIn.addEventListener('click', () => {
-        updateZoom(Math.min(currentZoom + 0.1, 5));
+    // Dropdown Logic
+    if (zoomContainer && zoomDropdown) {
+        // Show on hover container
+        zoomContainer.addEventListener('mouseenter', () => zoomDropdown.classList.remove('hidden'));
+        zoomContainer.addEventListener('mouseleave', () => zoomDropdown.classList.add('hidden'));
+
+        // Option Clicks
+        zoomDropdown.querySelectorAll('button[data-zoom]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const z = parseFloat(e.target.dataset.zoom);
+                window.setZoom(z);
+                zoomDropdown.classList.add('hidden');
+            });
+        });
+
+        // Fit Logic
+        zoomFit.addEventListener('click', () => {
+            // Fit logic: Calculate scale to fit canvas in viewport with padding
+            const workspace = document.getElementById('workspace-area');
+            const canvas = document.getElementById('canvas-container');
+            const padding = 60;
+
+            // Get raw dimensions (unscaled)
+            const style = window.getComputedStyle(canvas);
+            const w = parseFloat(style.width);
+            const h = parseFloat(style.height);
+
+            const availW = workspace.clientWidth - padding;
+            const availH = workspace.clientHeight - padding;
+
+            const scaleW = availW / w;
+            const scaleH = availH / h;
+
+            const fitZoom = Math.min(scaleW, scaleH, 1); // Capped at 100% or fit? User usually implies seeing whole thing.
+            // Let's allow > 100% if screen is huge? No, usually "Fit" means "Fit inside".
+            window.setZoom(fitZoom);
+            zoomDropdown.classList.add('hidden');
+        });
+    }
+}
+
+// Preset Delay Logic
+const presetTrigger = document.getElementById('preset-trigger-container');
+const presetPopover = document.getElementById('preset-popover');
+
+if (presetTrigger && presetPopover) {
+    let hoverTimeout;
+
+    presetTrigger.addEventListener('mouseenter', () => {
+        hoverTimeout = setTimeout(() => {
+            presetPopover.classList.remove('hidden');
+            presetPopover.classList.add('block', 'animate-in', 'fade-in', 'zoom-in-95', 'duration-100');
+        }, 500); // 500ms Delay
     });
 
-    zoomOut.addEventListener('click', () => {
-        updateZoom(Math.max(currentZoom - 0.1, 0.1));
+    presetTrigger.addEventListener('mouseleave', () => {
+        clearTimeout(hoverTimeout);
+        presetPopover.classList.add('hidden');
+        presetPopover.classList.remove('block');
     });
 }
 

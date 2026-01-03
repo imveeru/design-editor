@@ -126,7 +126,8 @@
             class="flex-1 relative overflow-hidden flex flex-col items-center justify-center bg-dots z-0">
 
             <!-- Static "Floating" Toolbar Container -->
-            <div class="h-16 w-full flex items-center justify-center pointer-events-none z-40 mt-4 mb-2">
+            <div
+                class="absolute top-6 left-1/2 transform -translate-x-1/2 z-50 pointer-events-none flex items-center justify-center w-full">
                 <div id="floating-toolbar"
                     class="pointer-events-auto flex items-center gap-1 bg-white dark:bg-[#2C2C2E] rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-1.5 opacity-0 transition-all duration-300 transform translate-y-2">
                     <!-- Toolbar Actions injected here -->
@@ -228,7 +229,7 @@
 
             <!-- Layers (Bottom) -->
             <div
-                class="flex flex-col h-[35%] min-h-[180px] border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-black/20">
+                class="flex flex-col h-[40%] min-h-[180px] border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-black/20">
                 <div id="layers-header"
                     class="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider text-gray-400 select-none flex justify-between items-center cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
                     <span>Layers</span>

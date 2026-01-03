@@ -18,6 +18,19 @@ export function initInteractions() {
     container.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
+
+    // Pinch to Zoom (Ctrl + Wheel)
+    window.addEventListener('wheel', (e) => {
+        if (e.ctrlKey) {
+            e.preventDefault();
+            const delta = -e.deltaY * 0.01; // Sensitivity
+            const currentZoom = store.get().canvas.zoom;
+            // Use global setter if available, else manual
+            if (window.setZoom) {
+                window.setZoom(currentZoom + delta);
+            }
+        }
+    }, { passive: false });
 }
 
 // Coordinate conversion helpers
@@ -128,7 +141,7 @@ function handleMouseDown(e) {
 
         // Start Dragging
         isDragging = true;
-        document.body.style.cursor = 'grabbing';
+        document.body.style.cursor = 'move';
 
         const layer = state.layers.find(l => l.id === hitLayerId);
         dragStartParams = {
@@ -280,7 +293,7 @@ function handleMouseMove(e) {
     }
 
     if (isRotating) {
-        document.body.style.cursor = 'grabbing'; // Or a rotate cursor
+        document.body.classList.add('cursor-rotate');
 
         const selectedId = state.editor.selectedLayerIds[0];
         if (!selectedId) return;
@@ -326,6 +339,7 @@ function handleMouseUp(e) {
     dragStartParams = null;
     activeHandle = null;
     document.body.style.cursor = 'default';
+    document.body.classList.remove('cursor-rotate');
 }
 
 // Helpers
