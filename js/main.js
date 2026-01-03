@@ -330,24 +330,46 @@ function setupExportImport() {
         reader.readAsText(file);
     });
 
-    // File Name Editing
+    // File Name Editing (Title)
     const titleInput = document.getElementById('file-name');
     if (titleInput) {
-        // Init
         titleInput.value = store.get().document?.title || "Untitled Design";
-
-        // Listen
         titleInput.addEventListener('input', debounce((e) => {
             store.setState({
                 document: { ...store.get().document, title: e.target.value }
             });
         }, 500));
-
-        // Subscribe to update if changed externally (e.g. import)
         store.subscribe(() => {
             const t = store.get().document?.title;
             if (t && t !== titleInput.value) {
                 titleInput.value = t;
+            }
+        });
+    }
+
+    // File ID Editing
+    const idInput = document.getElementById('file-id');
+    if (idInput) {
+        // Init
+        const currentMeta = store.get().meta;
+        idInput.value = currentMeta?.id || "";
+
+        // Listen for changes
+        idInput.addEventListener('input', debounce((e) => {
+            const val = e.target.value.trim();
+            if (val) {
+                store.setState({
+                    meta: { ...store.get().meta, id: val }
+                });
+            }
+        }, 500));
+
+        // Subscribe to updates (e.g. on import)
+        store.subscribe(() => {
+            const currentId = store.get().meta?.id;
+            // Only update if focused element is NOT this input, to avoid cursor jumping
+            if (currentId && currentId !== idInput.value && document.activeElement !== idInput) {
+                idInput.value = currentId;
             }
         });
     }
@@ -506,15 +528,9 @@ window.unitConverters = { toUnit, toPx, PPI };
 init();
 
 // Export Helper
+// Export Helper
 function exportJson() {
-    const state = store.get();
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", (state.document.title || "design") + ".json");
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
+    exportProject();
 }
 
 
