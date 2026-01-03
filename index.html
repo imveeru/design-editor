@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Design Editor</title>
+    <title>Design Editor Demo</title>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎨</text></svg>">
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'accent-start': '#3b82f6',
+                        'accent-end': '#60a5fa',
+                        apple: {
+                            gray: '#F5F5F7',
+                            dark: '#1C1C1E',
+                            blue: '#007AFF'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Dotted Background Pattern */
+        .bg-dots {
+            background-color: #F5F5F7;
+            background-image: radial-gradient(#D1D5DB 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .dark .bg-dots {
+            background-color: #1C1C1E;
+            background-image: radial-gradient(#374151 1px, transparent 1px);
+        }
+    </style>
+</head>
+
+<body
+    class="bg-[#F5F5F7] dark:bg-[#1C1C1E] text-[#1D1D1F] dark:text-[#F5F5F7] font-sans h-screen overflow-hidden flex flex-col transition-colors duration-200 antialiased">
+
+    <!-- Top Bar -->
+    <header
+        class="h-12 bg-white dark:bg-[#2C2C2E] border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-6 z-20 shrink-0 sticky top-0">
+        <div class="flex items-center space-x-6">
+            <!-- Title Icon -->
+            <div class="text-2xl select-none">🎨</div>
+
+            <!-- Navigation / Actions -->
+            <div class="flex items-center space-x-2">
+                <button id="import-btn"
+                    class="px-3 py-1.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">Import</button>
+                <input type="file" id="file-input" class="hidden" accept=".json">
+
+                <!-- Export Dropdown -->
+                <div class="relative group">
+                    <button id="export-menu-btn"
+                        class="px-3 py-1.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors flex items-center gap-1">
+                        <span>Export</span>
+                        <i class="ph ph-caret-down text-xs opacity-50"></i>
+                    </button>
+                    <!-- Dropdown Content -->
+                    <div id="export-dropdown"
+                        class="absolute top-full left-0 mt-1 w-32 bg-white dark:bg-[#3A3A3C] border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl hidden flex flex-col z-50 p-1">
+                        <button data-type="json"
+                            class="text-left px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-xs font-medium transition-colors">JSON</button>
+                        <button data-type="png"
+                            class="text-left px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-xs font-medium transition-colors">PNG</button>
+                        <button data-type="jpeg"
+                            class="text-left px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-xs font-medium transition-colors">JPEG</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-4">
+            <!-- Zoom Controls (Pill) -->
+            <div class="flex items-center bg-gray-100 dark:bg-black/20 rounded-lg p-0.5">
+                <button id="zoom-out"
+                    class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white dark:hover:bg-gray-600 shadow-sm transition-all focus:outline-none">
+                    <i class="ph ph-minus text-xs"></i>
+                </button>
+                <span id="zoom-label"
+                    class="text-xs font-medium w-10 text-center text-gray-500 dark:text-gray-400 select-none">100%</span>
+                <button id="zoom-in"
+                    class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white dark:hover:bg-gray-600 shadow-sm transition-all focus:outline-none">
+                    <i class="ph ph-plus text-xs"></i>
+                </button>
+            </div>
+
+            <!-- Theme Toggle -->
+            <button id="theme-toggle"
+                class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors focus:outline-none text-gray-500 dark:text-gray-400">
+                <i id="theme-icon-sun" class="ph ph-sun hidden text-lg"></i>
+                <i id="theme-icon-moon" class="ph ph-moon text-lg"></i>
+            </button>
+        </div>
+    </header>
+
+    <div class="flex-1 flex overflow-hidden">
+        <!-- Canvas Area (Center) -->
+        <main id="workspace-area"
+            class="flex-1 relative overflow-hidden flex flex-col items-center justify-center bg-dots z-0">
+
+            <!-- Static "Floating" Toolbar Container -->
+            <div class="h-16 w-full flex items-center justify-center pointer-events-none z-40 mt-4 mb-2">
+                <div id="floating-toolbar"
+                    class="pointer-events-auto flex items-center gap-1 bg-white dark:bg-[#2C2C2E] rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-1.5 opacity-0 transition-all duration-300 transform translate-y-2">
+                    <!-- Toolbar Actions injected here -->
+                </div>
+            </div>
+
+            <!-- The actual canvas will be centered here -->
+            <div id="canvas-container"
+                class="relative shadow-2xl rounded-sm transition-transform duration-100 ease-linear origin-center cursor-move-grab ring-1 ring-black/5 dark:ring-white/5 bg-white">
+                <canvas id="main-canvas" class="block rounded-sm"></canvas>
+
+                <!-- Overlay Interface for selection/handles -->
+                <div id="selection-overlay" class="absolute top-0 left-0 w-full h-full pointer-events-none">
+                    <!-- Transformation controls will be injected here via JS -->
+                </div>
+            </div>
+
+            <!-- Canvas Size Footer -->
+            <div
+                class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white dark:bg-[#2C2C2E] pl-2 pr-4 py-1.5 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 flex items-center space-x-3 z-30">
+
+                <!-- Presets Dropdown -->
+                <div class="relative group">
+                    <button id="preset-trigger"
+                        class="flex items-center space-x-1 text-[10px] uppercase font-bold text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">
+                        <span>Preset</span>
+                        <i class="ph ph-caret-down text-xs"></i>
+                    </button>
+                    <!-- Popover -->
+                    <div
+                        class="absolute bottom-full left-0 mb-2 w-48 bg-white dark:bg-[#1C1C1E] border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl py-1 hidden group-hover:block animate-fade-in-up">
+                        <div class="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Social
+                            Media</div>
+                        <button
+                            class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
+                            onclick="window.setCanvasSize(1080, 1080)">Instagram Post</button>
+                        <button
+                            class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
+                            onclick="window.setCanvasSize(1080, 1920)">Instagram Story</button>
+                        <button
+                            class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
+                            onclick="window.setCanvasSize(1920, 1080)">FHD (1920x1080)</button>
+                        <div class="h-px bg-gray-100 dark:bg-gray-800 my-1"></div>
+                        <div class="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Print
+                        </div>
+                        <button
+                            class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
+                            onclick="window.setCanvasSize(2480, 3508)">A4</button>
+                    </div>
+                </div>
+
+                <div class="w-px h-4 bg-gray-200 dark:bg-gray-700"></div>
+
+                <!-- Dimensions -->
+                <div class="flex items-center space-x-1 text-xs font-mono text-gray-600 dark:text-gray-300">
+                    <input id="canvas-w" type="number"
+                        class="w-12 bg-transparent text-right focus:outline-none focus:text-blue-500 hover:text-blue-500 transition-colors p-0 border-b border-transparent focus:border-blue-500"
+                        value="1080">
+                    <span class="text-gray-300 dark:text-gray-600 px-1">×</span>
+                    <input id="canvas-h" type="number"
+                        class="w-12 bg-transparent text-left focus:outline-none focus:text-blue-500 hover:text-blue-500 transition-colors p-0 border-b border-transparent focus:border-blue-500"
+                        value="1080">
+                </div>
+
+                <!-- Units -->
+                <div class="relative group">
+                    <button id="unit-trigger"
+                        class="text-[10px] font-bold text-gray-400 uppercase hover:text-blue-500 transition-colors flex items-center gap-1">
+                        <span id="current-unit">PX</span>
+                        <i class="ph ph-caret-down text-[10px]"></i>
+                    </button>
+                    <!-- Popover -->
+                    <div
+                        class="absolute bottom-full right-0 mb-2 w-16 bg-white dark:bg-[#1C1C1E] border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl py-1 hidden group-hover:block animate-fade-in-up">
+                        <button
+                            class="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
+                            onclick="window.setUnit('px')">PX</button>
+                        <button
+                            class="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
+                            onclick="window.setUnit('in')">IN</button>
+                        <button
+                            class="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
+                            onclick="window.setUnit('mm')">MM</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Sidebar (Inspector & Layers) -->
+        <aside
+            class="w-[280px] bg-white dark:bg-[#2C2C2E] border-l border-gray-200 dark:border-gray-700 flex flex-col z-10 shrink-0">
+
+            <!-- Inspector (Top) -->
+            <div class="flex-1 flex flex-col overflow-hidden min-h-0">
+                <div id="inspector-panel" class="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-hide">
+                    <p class="text-sm text-gray-400 text-center mt-20 select-none">No Selection</p>
+                </div>
+            </div>
+
+            <!-- Layers (Bottom) -->
+            <div
+                class="flex flex-col h-[35%] min-h-[180px] border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-black/20">
+                <div id="layers-header"
+                    class="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider text-gray-400 select-none flex justify-between items-center cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
+                    <span>Layers</span>
+                    <i class="ph ph-caret-down text-lg transition-transform duration-200" id="layers-toggle-icon"></i>
+                </div>
+                <div id="layers-panel" class="flex-1 overflow-y-auto p-2 space-y-1 scrollbar-hide">
+                    <!-- Layer Items will be injected here -->
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container"
+        class="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 flex flex-col items-center space-y-2 pointer-events-none">
+    </div>
+
+    <!-- Custom Context Menu -->
+    <div id="context-menu"
+        class="fixed hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg rounded-md py-1 min-w-[160px] z-50 text-sm">
+        <button data-action="bring-front"
+            class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">Bring to Front</button>
+        <button data-action="send-back" class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">Send
+            to Back</button>
+        <div class="h-px bg-gray-200 dark:bg-gray-700 my-1"></div>
+        <button data-action="duplicate"
+            class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">Duplicate</button>
+        <button data-action="delete"
+            class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-red-500">Delete</button>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="js/main.js"></script>
+</body>
+
+</html>
