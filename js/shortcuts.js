@@ -2,6 +2,9 @@ import store from './state.js';
 import { deepClone, generateId } from './utils.js';
 import { showToast } from './toasts.js';
 
+
+let clipboard = []; // Internal clipboard
+
 export function initShortcuts() {
     window.addEventListener('keydown', handleKeyDown);
 }
@@ -40,16 +43,54 @@ function handleKeyDown(e) {
             nudgeLayers(1, 0, e.shiftKey ? 10 : 1);
             break;
 
-        case 'd':
             if (e.metaKey || e.ctrlKey) {
                 e.preventDefault();
                 duplicateSelectedLayers();
             }
             break;
 
+        case 'c':
+            if (e.metaKey || e.ctrlKey) {
+                e.preventDefault();
+                copySelectedLayers();
+            }
+            break;
+
+        case 'v':
+            if (e.metaKey || e.ctrlKey) {
+                e.preventDefault();
+                pasteLayers();
+            }
+            break;
+
+        case 'x':
+            if (e.metaKey || e.ctrlKey) {
+                e.preventDefault();
+                cutSelectedLayers();
+            }
+            break;
+
+        case 'z':
+            if (e.metaKey || e.ctrlKey) {
+                e.preventDefault();
+                if (e.shiftKey) {
+                    store.redo();
+                } else {
+                    store.undo();
+                }
+            }
+            break;
+
+        case 'y':
+            if (e.metaKey || e.ctrlKey) {
+                e.preventDefault();
+                store.redo();
+            }
+            break;
+
         case 'Escape':
             // Deselect all
-            store.setState({ editor: { ...state.editor, selectedLayerIds: [] } });
+            store.setState({ editor: { ...state.editor, selectedLayerIds: [] } }, true, false);
             break;
 
         case ' ': // Spacebar for panning
@@ -139,4 +180,70 @@ function duplicateSelectedLayers() {
     });
 
     showToast(`Duplicated ${newLayers.length} layer(s)`);
+}
+
+function copySelectedLayers() {
+    const state = store.get();
+    const ids = state.editor.selectedLayerIds;
+    if (ids.length === 0) return;
+
+    clipboard = []; // Clear
+    ids.forEach(id => {
+        const layer = state.layers.find(l => l.id === id);
+        if (layer) {
+            clipboard.push(deepClone(layer));
+        }
+    });
+
+    showToast(`Copied ${clipboard.length} layer(s)`);
+}
+
+function pasteLayers() {
+    if (clipboard.length === 0) return;
+
+    const state = store.get();
+    const newLayers = [];
+    const newIds = [];
+
+    // Calculate center offset for paste behavior? 
+    // Or just simple offset +10, +10px (normalized)
+    // 2% of canvas size is reasonable
+    const offsetX = 0.02;
+    const offsetY = 0.02;
+
+    clipboard.forEach(template => {
+        const copy = deepClone(template);
+        copy.id = generateId('layer');
+        copy.name = `${template.name} (Copy)`;
+
+        // Offset
+        copy.transform.position.x += offsetX;
+        copy.transform.position.y += offsetY;
+
+        // Ensure inside bounds? (Not strictly required, canvas allows overflow)
+
+        newLayers.push(copy);
+        newIds.push(copy.id);
+    });
+
+    store.setState({
+        layers: [...state.layers, ...newLayers],
+        editor: { ...state.editor, selectedLayerIds: newIds }
+    });
+
+    showToast(`Pasted ${newLayers.length} layer(s)`);
+}
+
+function cutSelectedLayers() {
+    const state = store.get();
+    const ids = state.editor.selectedLayerIds;
+    if (ids.length === 0) return;
+
+    // Copy first
+    copySelectedLayers();
+
+    // Then Delete
+    deleteSelectedLayers();
+
+    showToast(`Cut ${ids.length} layer(s)`);
 }

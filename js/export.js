@@ -1,5 +1,6 @@
 import store, { LAYER_TYPES } from './state.js';
 import { toRadians } from './utils.js';
+import { renderStateToContext } from './canvas.js';
 
 /* --- Mappings based on User Schema --- */
 
@@ -109,55 +110,26 @@ function getFontId(fontName) {
 }
 
 /**
- * Generate Base64 from Canvas (Preview)
+ * Generate Base64 key for JSON Preview
+ * USES THE MAIN CANVAS directly to ensure WYSIWYG
  */
-async function generatePreview(width, height) {
-    const state = store.get();
+async function generatePreview() {
+    const sourceCanvas = document.getElementById('main-canvas');
+    if (!sourceCanvas) return '';
+
+    // Create a 300px thumbnail
+    const targetW = 300;
+    const targetH = 300 * (sourceCanvas.height / sourceCanvas.width);
+
     const canvas = document.createElement('canvas');
-    canvas.width = 300;
-    canvas.height = 300 * (state.canvas.height / state.canvas.width);
+    canvas.width = targetW;
+    canvas.height = targetH;
     const ctx = canvas.getContext('2d');
 
-    // Simple White BG
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Draw Source Canvas (scaled down)
+    ctx.drawImage(sourceCanvas, 0, 0, sourceCanvas.width, sourceCanvas.height, 0, 0, targetW, targetH);
 
-    const scale = canvas.width / state.canvas.width;
-    ctx.scale(scale, scale);
-
-    state.layers.forEach(layer => {
-        if (!layer.visible) return;
-        const { position, size, rotation } = layer.transform;
-        const x = position.x * state.canvas.width;
-        const y = position.y * state.canvas.height;
-        const w = size.width * state.canvas.width;
-        const h = size.height * state.canvas.height;
-
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(toRadians(rotation));
-        ctx.globalAlpha = layer.opacity;
-
-        if (layer.type === LAYER_TYPES.BACKGROUND || layer.content.type === 'background') {
-            const fill = layer.style?.fill || layer.content.fill;
-            if (fill && fill.colors && fill.colors[0]) {
-                ctx.fillStyle = fill.colors[0];
-                ctx.fillRect(-w / 2, -h / 2, w, h);
-            }
-        } else if (layer.type === LAYER_TYPES.TEXT) {
-            const lines = layer.content.lines || [];
-            ctx.textAlign = layer.content.align || 'center';
-            ctx.textBaseline = 'middle';
-            lines.forEach((l, i) => {
-                ctx.fillStyle = l.color || '#000';
-                ctx.font = `${(l.fontSize || 20)}px sans-serif`;
-                ctx.fillText(l.text, 0, (i - lines.length / 2) * (l.fontSize) + l.fontSize / 2);
-            });
-        }
-        ctx.restore();
-    });
-
-    return canvas.toDataURL('image/jpeg', 0.8);
+    return canvas.toDataURL('image/png');
 }
 
 /**
@@ -192,8 +164,8 @@ export async function exportStrictJSON() {
         .filter(x => x !== undefined);
     if (industries.length === 0) industries.push(0);
 
-    // Preview
-    const previewBase64 = await generatePreview(state.canvas.width, state.canvas.height);
+    // Preview: Use DOM Canvas snapshot
+    const previewBase64 = await generatePreview();
 
     // --- Elements (Array of Objects) ---
 
@@ -202,7 +174,7 @@ export async function exportStrictJSON() {
 
     const elements = [];
 
-    // --- Helper for Base64 ---
+    // --- Helper for Base64 (needed for JSON payload element data) ---
     const urlToBase64 = async (url) => {
         if (!url) return null;
         if (url.startsWith('data:')) return url;
@@ -311,7 +283,7 @@ export async function exportStrictJSON() {
         canvas_height: state.canvas.height,
         keywords: keywords,
 
-        // Include Global Meta (from Request 1 Data Model)
+        // Include Global Meta
         group: groupModeId,
         format: formatId,
         category: categoryId,
@@ -335,51 +307,44 @@ export async function exportProject() {
     await exportStrictJSON();
 }
 
-export async function exportToImage(format = 'png') {
+/**
+ * Export to Image: Uses Shared Render Logic with 300 DPI Scaling
+ */
+export async function exportToImage(format = 'png', scale = 1) {
     const state = store.get();
-    const { width, height } = state.canvas;
+
+    // Scale Factor
+    // 1x = 1080px (if canvas is 1080)
+    // 2x = 2160px
+    const finalScale = scale;
+
+    const width = state.canvas.width;
+    const height = state.canvas.height;
+
+    // Create Off-Screen Canvas
     const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
+    canvas.width = Math.ceil(width * finalScale);
+    canvas.height = Math.ceil(height * finalScale);
+
     const ctx = canvas.getContext('2d');
 
+    // Initial White Background
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, width, height);
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    state.layers.filter(l => l.visible).forEach(layer => {
-        const { position, size, rotation } = layer.transform;
-        const x = position.x * width;
-        const y = position.y * height;
-        const w = size.width * width;
-        const h = size.height * height;
+    // Reuse the main rendering logic from canvas.js
+    // This ensures fonts, images (from cache), and SVGs are exactly as seen on screen.
+    // AND it applies the Scale (DPI) automatically.
+    renderStateToContext(ctx, state, width, height, finalScale);
 
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(toRadians(rotation));
-        ctx.globalAlpha = layer.opacity;
+    // Quality check
+    let quality = 0.9;
+    if (format === 'jpeg') quality = 0.95;
 
-        if (layer.type === LAYER_TYPES.BACKGROUND || layer.content.type === 'background') {
-            const fill = layer.style?.fill || layer.content.fill;
-            if (fill && fill.colors && fill.colors[0]) {
-                ctx.fillStyle = fill.colors[0];
-                ctx.fillRect(-w / 2, -h / 2, w, h);
-            }
-        } else if (layer.type === LAYER_TYPES.TEXT) {
-            const lines = layer.content.lines || [];
-            ctx.textAlign = layer.content.align || 'center';
-            ctx.textBaseline = 'middle';
-            lines.forEach((l, i) => {
-                ctx.fillStyle = l.color || '#000';
-                ctx.font = `${l.fontSize}px ${l.font}, sans-serif`;
-                ctx.fillText(l.text, 0, (i - lines.length / 2) * (l.fontSize * 1.2) + l.fontSize / 2);
-            });
-        }
-        ctx.restore();
-    });
+    const dataUrl = canvas.toDataURL(`image/${format}`, quality);
 
-    const dataUrl = canvas.toDataURL(`image/${format}`, 0.9);
     const link = document.createElement('a');
-    link.download = `design-${state.meta.id}.${format}`;
+    link.download = `${state.meta.id || 'design'}@${scale}x.${format}`;
     link.href = dataUrl;
     link.click();
 }

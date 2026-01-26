@@ -1,4 +1,4 @@
-import { deepClone, generateId } from './utils.js';
+import { deepClone, generateId, measureContent } from './utils.js';
 
 /**
  * Global State Management
@@ -11,7 +11,8 @@ export const LAYER_TYPES = {
     TEXT: '1',
     IMAGE: '2',
     BACKGROUND: '3',
-    MASK: '4'
+    MASK: '4',
+    GROUP: '5'
 };
 
 
@@ -29,6 +30,7 @@ const INITIAL_STATE = {
         height: 1080,
         dpi: 72,
         zoom: 0.5,
+        pan: { x: 0, y: 0 },
         unit: 'px' // New default unit
     },
     document: {
@@ -195,7 +197,19 @@ class EditorState {
         // Load from localStorage or use default
         try {
             const saved = localStorage.getItem('design_editor_state');
-            this.state = saved ? JSON.parse(saved) : deepClone(INITIAL_STATE);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                // Merge with defaults to ensure new keys (like canvas.pan) exist
+                // Simple 1-level deep merge for known structures
+                this.state = {
+                    ...INITIAL_STATE,
+                    ...parsed,
+                    canvas: { ...INITIAL_STATE.canvas, ...parsed.canvas },
+                    meta: { ...INITIAL_STATE.meta, ...parsed.meta }
+                };
+            } else {
+                this.state = deepClone(INITIAL_STATE);
+            }
         } catch (e) {
             console.error("Failed to load state", e);
             this.state = deepClone(INITIAL_STATE);
@@ -205,6 +219,13 @@ class EditorState {
 
         // Ensure defaults if loaded state is old/broken (basic check)
         if (!this.state.layers) this.state = deepClone(INITIAL_STATE);
+
+        // History Management
+        // We initialize history with the current state so we can undo back to it if needed
+        // or simply start fresh. Standard is start with [initial].
+        this.history = [deepClone(this.state)];
+        this.historyIndex = 0;
+        this.maxHistory = 50; // Limit history size
     }
 
     /**
@@ -225,22 +246,42 @@ class EditorState {
      * Update the state based on a partial update or function
      * @param {Object|Function} update - Partial state object or function(prevState) => newState
      * @param {Boolean} save - Whether to persist to localStorage (default true)
+     * @param {Boolean} addToHistory - Whether to record this state in history (default true)
      */
-    setState(update, save = true) {
+    setState(update, save = true, addToHistory = true) {
         const prevState = deepClone(this.state);
+        let nextState;
 
         if (typeof update === 'function') {
-            const newState = update(prevState);
-            this.state = { ...prevState, ...newState }; // Shallow merge at root
+            const partial = update(prevState);
+            nextState = { ...prevState, ...partial };
         } else {
-            // For deep merging, we might need lodash.merge, but strictly 
-            // relying on specific 'reducers' or direct assignment is safer in vanilla.
-            // Here we assume 'update' contains top-level keys like 'canvas', 'layers'.
-            this.state = { ...prevState, ...update };
+            nextState = { ...prevState, ...update };
         }
 
         // Always update metadata
-        this.state.meta.updatedAt = new Date().toISOString();
+        nextState.meta.updatedAt = new Date().toISOString();
+
+        // 1. Update Current State
+        this.state = nextState;
+
+        // 2. Add to History (if requested)
+        if (addToHistory) {
+            // Remove any future history if we were in the middle of the stack
+            if (this.historyIndex < this.history.length - 1) {
+                this.history = this.history.slice(0, this.historyIndex + 1);
+            }
+
+            // Push new state
+            this.history.push(deepClone(this.state));
+            this.historyIndex++;
+
+            // Limit
+            if (this.history.length > this.maxHistory) {
+                this.history.shift();
+                this.historyIndex--;
+            }
+        }
 
         if (save) {
             this.persist();
@@ -249,10 +290,36 @@ class EditorState {
         this.notify();
     }
 
+    undo() {
+        if (this.historyIndex > 0) {
+            this.historyIndex--;
+            // Restore state from history
+            this.state = deepClone(this.history[this.historyIndex]);
+            this.persist();
+            this.notify();
+            console.log("Undo", this.historyIndex);
+        } else {
+            console.log("Nothing to undo");
+        }
+    }
+
+    redo() {
+        if (this.historyIndex < this.history.length - 1) {
+            this.historyIndex++;
+            // Restore state from history
+            this.state = deepClone(this.history[this.historyIndex]);
+            this.persist();
+            this.notify();
+            console.log("Redo", this.historyIndex);
+        } else {
+            console.log("Nothing to redo");
+        }
+    }
+
     /**
      * Specialized method to update a specific layer
      */
-    updateLayer(layerId, changes) {
+    updateLayer(layerId, changes, addToHistory = true) {
         const layers = deepClone(this.state.layers);
         const index = layers.findIndex(l => l.id === layerId);
 
@@ -267,13 +334,63 @@ class EditorState {
             // Let's implement a simple recursive merge for critical props if needed,
             // or rely on caller to spread.
 
-            // Simpler: Caller provides full objects for sub-properties.
+            // Merge changes first to get the potential new state
+            const oldLayer = deepClone(layers[index]);
+            // Apply changes to the layer in the list
             Object.keys(changes).forEach(key => {
                 layers[index][key] = changes[key];
             });
 
-            this.setState({ layers });
+            const newLayer = layers[index];
+
+            // Check if we need to recalculate dimensions
+            // Trigger if content changed, or if it's text and style props changed.
+            // Simplified: If 'content' key is in changes, check dimensions.
+            if (changes.content) {
+                const measured = measureContent(newLayer);
+
+                if (measured) {
+                    const canvasW = this.state.canvas.width;
+                    const canvasH = this.state.canvas.height;
+
+                    if (newLayer.type === LAYER_TYPES.TEXT) {
+                        // Enforce exact fit for text
+                        // Convert pixel measures back to normalized 0-1
+                        newLayer.transform.size.width = measured.width / canvasW;
+                        newLayer.transform.size.height = measured.height / canvasH;
+                    }
+                    else if ((newLayer.type === LAYER_TYPES.IMAGE || newLayer.type === LAYER_TYPES.SVG) && measured.ratio) {
+                        // For Image/SVG, enforce aspect ratio.
+                        // We usually want to keep the current width and adjust height, 
+                        // unless it's a fresh insert (which this might be if it's a full content replacement).
+
+                        // If src/xml changed significantly, we might want to reset ratio.
+                        // Current logic: Maintain Width, adjust Height to match Aspect Ratio.
+                        const currentW = newLayer.transform.size.width; // Normalized
+                        // targetH = currentW / ratio
+                        // But wait, ratio = w / h. so h = w / ratio.
+                        // Correct.
+                        // However, since we work in normalized space, we must account for canvas non-squareness.
+                        // Real Ratio = (W_norm * CanvasW) / (H_norm * CanvasH)
+                        // measurements are in pixels (or ratio of pixels).
+
+                        // Pixel dimensions:
+                        const pxW = currentW * canvasW;
+                        const pxH = pxW / measured.ratio;
+
+                        newLayer.transform.size.height = pxH / canvasH;
+                    }
+                }
+            }
+
+            this.setState({ layers }, true, addToHistory);
         }
+    }
+
+    addLayer(layer) {
+        // Helper to push a new layer with history
+        const layers = [...this.state.layers, layer];
+        this.setState({ layers });
     }
 
     /**
@@ -283,8 +400,9 @@ class EditorState {
      */
     subscribe(callback) {
         this.listeners.push(callback);
+        // Unsubscribe function
         return () => {
-            this.listeners = this.listeners.filter(l => l !== callback);
+            this.listeners = this.listeners.filter(listener => listener !== callback);
         };
     }
 
@@ -302,6 +420,8 @@ class EditorState {
 
     reset() {
         this.state = deepClone(INITIAL_STATE);
+        this.history = [deepClone(this.state)];
+        this.historyIndex = 0;
         this.persist();
         this.notify();
     }

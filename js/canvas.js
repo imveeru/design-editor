@@ -16,28 +16,80 @@ const imageCache = new Map();
  */
 export function renderCanvas() {
     const state = store.get();
-    const { width, height } = state.canvas;
+    const { width, height, zoom } = state.canvas; // Included zoom
 
-    // 1. Set internal resolution to Design resolution
-    if (canvas.width !== width || canvas.height !== height) {
-        canvas.width = width;
-        canvas.height = height;
+    // Device Pixel Ratio for sharp text
+    const dpr = window.devicePixelRatio || 1;
+
+    // Calculate Target Logical Size (Zoomed)
+    const displayW = width * zoom;
+    const displayH = height * zoom;
+
+    // Calculate Physical Buffer Size
+    // Cap at 4096 or 8192 to prevent crash
+    const MAX_DIM = 4096;
+    let targetPhysicalW = displayW * dpr;
+    let targetPhysicalH = displayH * dpr;
+
+    // If exceeding max, we clamp but maintain aspect ratio? 
+    // Or just clamp the buffer and accept pixelation?
+    // Let's scale down the DPR factor if it exceeds.
+    if (targetPhysicalW > MAX_DIM || targetPhysicalH > MAX_DIM) {
+        const ratio = Math.min(MAX_DIM / targetPhysicalW, MAX_DIM / targetPhysicalH);
+        targetPhysicalW *= ratio;
+        targetPhysicalH *= ratio;
+        // The effective scale factor for drawing needs to match
     }
 
-    // Set display size (style)
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
-    container.style.width = `${width}px`;
-    container.style.height = `${height}px`;
+    // 1. Set internal resolution to Design resolution
+    // We explicitly round to avoid subpixel antialiasing weirdness on canvas edge
+    if (canvas.width !== Math.round(targetPhysicalW) || canvas.height !== Math.round(targetPhysicalH)) {
+        canvas.width = Math.round(targetPhysicalW);
+        canvas.height = Math.round(targetPhysicalH);
+    }
 
-    // 2. Clear
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, width, height);
+    // Set display size (style) to the ZOOMED size
+    canvas.style.width = `${displayW}px`;
+    canvas.style.height = `${displayH}px`;
+    container.style.width = `${displayW}px`;
+    container.style.height = `${displayH}px`;
+
+    // Calculate scale factor: Mapping Design Pixels (width, height) to Physical Pixels (targetPhysicalW)
+    // Scale = PhysicalWidth / DesignWidth
+    const scale = targetPhysicalW / width;
+
+    renderStateToContext(ctx, state, width, height, scale);
+}
+
+/**
+ * Renders the given state to any 2D context.
+ * Useful for exports and previews.
+ */
+export function renderStateToContext(targetCtx, state, w, h, scale = 1) {
+    // 2. Clear & Set Scale
+    targetCtx.setTransform(scale, 0, 0, scale, 0, 0);
+    // Clearing the canvas: We want to clear the entire physical canvas.
+    // In transformed space, (0,0) to (w,h) covers the logical area.
+    // If we have negative elements or overflow, clearRect might miss? 
+    // Usually safe to clear a huge area or reset transform to clear?
+    // Let's reset to identity to clear, then set scale.
+
+    // Safer Clear:
+    targetCtx.save();
+    targetCtx.setTransform(1, 0, 0, 1, 0, 0);
+    // We don't easily know physical buffer size here without canvas ref, 
+    // but typically we can assume we clear everything.
+    // Actually, simply clearing the logical area is usually enough for layers inside bounds.
+    // Let's trust setTransform(scale) -> clearRect(0,0,w,h) clears the viewable area.
+    targetCtx.clearRect(0, 0, w * scale, h * scale);
+    targetCtx.restore();
+
+    targetCtx.setTransform(scale, 0, 0, scale, 0, 0);
 
     // 3. Render Layers
     state.layers.forEach(layer => {
         if (!layer.visible) return;
-        renderLayer(ctx, layer, width, height);
+        renderLayer(targetCtx, layer, w, h);
     });
 }
 
@@ -67,13 +119,26 @@ function renderLayer(ctx, layer, canvasW, canvasH) {
         renderBackground(ctx, layer, drawX, drawY, w, h);
     } else if (layer.type === LAYER_TYPES.TEXT) {
         renderText(ctx, layer, drawX, drawY, w, h);
+        // Text stroke is handled inside renderText for proper outlining of characters
     } else if (layer.type === LAYER_TYPES.IMAGE) {
         renderImage(ctx, layer, drawX, drawY, w, h);
+        renderLayerStroke(ctx, layer, drawX, drawY, w, h);
     } else if (layer.type === LAYER_TYPES.SVG) {
         renderSvg(ctx, layer, drawX, drawY, w, h);
+        renderLayerStroke(ctx, layer, drawX, drawY, w, h);
     }
 
     ctx.restore();
+}
+
+function renderLayerStroke(ctx, layer, x, y, w, h) {
+    if (layer.style && layer.style.stroke && layer.style.stroke.enabled) {
+        const { color, width } = layer.style.stroke;
+        ctx.strokeStyle = color || '#000000';
+        ctx.lineWidth = width || 1;
+        // Draw border around the bounding box
+        ctx.strokeRect(x, y, w, h);
+    }
 }
 
 function renderBackground(ctx, layer, x, y, w, h) {
@@ -90,6 +155,7 @@ function renderBackground(ctx, layer, x, y, w, h) {
 function renderText(ctx, layer, x, y, w, h) {
     const content = layer.content;
     if (!content || !content.lines) return;
+    if (content._isEditing) return; // Skip rendering if being edited
 
     // Default values
     const align = content.align || 'left';
@@ -145,9 +211,13 @@ function renderText(ctx, layer, x, y, w, h) {
         }
 
         // Draw
-        // Adjust for lineHeight. 'top' baseline draws at currentY.
-        // We want the text to be vertically centered in its line-height strip?
-        // Usually: Draw at top of strip.
+        // Adjust for letter spacing if needed (simple approximation handled by ctx)
+        if (layer.style && layer.style.stroke && layer.style.stroke.enabled) {
+            ctx.strokeStyle = layer.style.stroke.color || '#000000';
+            ctx.lineWidth = layer.style.stroke.width || 1;
+            ctx.strokeText(textStr, x + xOffset, currentY);
+        }
+
         ctx.fillText(textStr, x + xOffset, currentY);
 
         currentY += line.actualHeight;
@@ -198,6 +268,7 @@ function renderImage(ctx, layer, x, y, w, h) {
         if (!window.imageCache) window.imageCache = {};
         if (!window.imageCache[src]) {
             const newImg = new Image();
+            newImg.crossOrigin = "Anonymous";
             newImg.src = src;
             newImg.onload = () => {
                 store.notify(); // Re-render when loaded
@@ -242,8 +313,7 @@ function renderSvg(ctx, layer, x, y, w, h) {
             // Also replace strokes?
             svgContent = svgContent.replace(/stroke="[^"]*"/g, `stroke="${color}"`);
 
-            // If no fill in root, maybe add it? 
-            // Only if we replaced nothing?
+            // If no fill in root, consider adding it if replacements failed.
         }
 
         const encoded = encodeURIComponent(svgContent);
@@ -278,7 +348,6 @@ function renderSvg(ctx, layer, x, y, w, h) {
     }
 }
 
-// Subscribe to state changes to trigger render
 // Subscribe to state changes to trigger render
 store.subscribe(() => {
     requestAnimationFrame(renderCanvas);

@@ -24,7 +24,12 @@
                         'accent-end': '#60a5fa',
                         apple: {
                             gray: '#F5F5F7',
-                            dark: '#1C1C1E',
+                            dark: '#1C1C1E', // Main Background
+                            surface: '#2C2C2E', // Panels, Headers
+                            element: '#3A3A3C', // Inputs, Hover
+                            border: 'rgba(255, 255, 255, 0.1)',
+                            text: '#F5F5F7',
+                            'text-muted': '#98989D',
                             blue: '#007AFF'
                         }
                     },
@@ -54,82 +59,205 @@
 
         .dark .bg-dots {
             background-color: #1C1C1E;
-            background-image: radial-gradient(#374151 1px, transparent 1px);
+            background-image: radial-gradient(#3A3A3C 1px, transparent 1px);
         }
     </style>
 </head>
 
 <body
-    class="bg-[#F5F5F7] dark:bg-[#1C1C1E] text-[#1D1D1F] dark:text-[#F5F5F7] font-sans h-screen overflow-hidden flex flex-col transition-colors duration-200 antialiased">
+    class="bg-[#F5F5F7] dark:bg-apple-dark text-[#1D1D1F] dark:text-apple-text font-sans h-screen overflow-hidden flex flex-col transition-colors duration-200 antialiased">
 
     <!-- Top Bar -->
     <header
-        class="h-12 bg-white dark:bg-[#2C2C2E] border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-6 z-20 shrink-0 sticky top-0">
-        <div class="flex items-center space-x-6">
-            <!-- Title Icon -->
-            <div class="text-2xl select-none">🎨</div>
+        class="h-10 bg-white dark:bg-apple-surface border-b border-gray-200 dark:border-apple-border flex items-center justify-between px-4 z-20 shrink-0 sticky top-0">
+        <div class="flex items-center space-x-4">
+            <!-- Main Menu Button -->
+            <div class="relative group">
+                <button id="main-menu-btn"
+                    class="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-apple-element transition-colors focus:outline-none">
+                    <span class="text-xl select-none">🎨</span>
+                </button>
+                <!-- Main Menu Dropdown -->
+                <div id="main-menu-dropdown"
+                    class="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-apple-surface border border-gray-200 dark:border-apple-border rounded-xl shadow-xl hidden flex flex-col z-50 p-1">
+                    <button id="menu-import"
+                        class="text-left px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-apple-element text-sm text-gray-700 dark:text-gray-200 font-medium transition-colors flex items-center gap-2">
+                        <i class="ph ph-upload-simple"></i> Import
+                    </button>
+                    <div class="h-px bg-gray-100 dark:bg-apple-border my-1"></div>
+                    <button id="menu-undo"
+                        class="text-left px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-apple-element text-sm text-gray-700 dark:text-gray-200 font-medium transition-colors flex items-center gap-2">
+                        <i class="ph ph-arrow-u-up-left"></i> Undo
+                    </button>
+                    <button id="menu-redo"
+                        class="text-left px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-apple-element text-sm text-gray-700 dark:text-gray-200 font-medium transition-colors flex items-center gap-2">
+                        <i class="ph ph-arrow-u-up-right"></i> Redo
+                    </button>
+                    <div class="h-px bg-gray-100 dark:bg-apple-border my-1"></div>
+                    <button id="menu-clear"
+                        class="text-left px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-apple-element text-sm text-red-600 dark:text-red-400 font-medium transition-colors flex items-center gap-2">
+                        <i class="ph ph-trash"></i> Clear File
+                    </button>
+                    <div class="h-px bg-gray-100 dark:bg-apple-border my-1"></div>
+                    <button id="menu-controls"
+                        class="text-left px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-apple-element text-sm text-gray-700 dark:text-gray-200 font-medium transition-colors flex items-center gap-2">
+                        <i class="ph ph-keyboard"></i> Controls
+                    </button>
+                    <button id="menu-settings"
+                        class="text-left px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-apple-element text-sm text-gray-700 dark:text-gray-200 font-medium transition-colors flex items-center gap-2">
+                        <i class="ph ph-gear"></i> Settings
+                    </button>
+                </div>
+            </div>
 
             <!-- Navigation / Actions -->
             <div class="flex items-center space-x-2">
                 <div
-                    class="relative group flex items-center bg-gray-100 dark:bg-white/5 rounded-lg border border-transparent focus-within:border-blue-500 focus-within:bg-white dark:focus-within:bg-[#3A3A3C] transition-all">
-                    <span
-                        class="pl-2 pr-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider select-none">ID</span>
+                    class="relative group flex items-center bg-gray-100 dark:bg-apple-element rounded-lg border border-transparent focus-within:border-blue-500 focus-within:bg-white dark:focus-within:bg-apple-element transition-all">
+                    <!-- Removed ID label -->
                     <input id="file-id" type="text"
-                        class="bg-transparent border-none text-xs font-mono text-gray-600 dark:text-gray-300 w-32 focus:outline-none py-1.5 pr-2 placeholder-gray-400"
+                        class="bg-transparent border-none text-xs font-mono text-gray-600 dark:text-gray-300 w-32 focus:outline-none py-1.5 px-2 placeholder-gray-400"
                         placeholder="design-id" spellcheck="false" autocomplete="off">
                 </div>
-                <div class="w-px h-4 bg-gray-200 dark:bg-gray-700 mx-2"></div>
-                <button id="import-btn"
-                    class="px-3 py-1.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">Import</button>
+                <!-- Hidden Import Button (Mapped to Menu) -->
                 <input type="file" id="file-input" class="hidden" accept=".json">
-
-                <!-- Export Dropdown -->
-                <div class="relative group">
-                    <button id="export-menu-btn"
-                        class="px-3 py-1.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors flex items-center gap-1">
-                        <span>Export</span>
-                        <i class="ph ph-caret-down text-xs opacity-50"></i>
-                    </button>
-                    <!-- Dropdown Content -->
-                    <div id="export-dropdown"
-                        class="absolute top-full left-0 mt-1 w-32 bg-white dark:bg-[#3A3A3C] border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl hidden flex flex-col z-50 p-1">
-                        <button data-type="json"
-                            class="text-left px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-xs font-medium transition-colors">JSON</button>
-                        <button data-type="png"
-                            class="text-left px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-xs font-medium transition-colors">PNG</button>
-                        <button data-type="jpeg"
-                            class="text-left px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-xs font-medium transition-colors">JPEG</button>
-                    </div>
-                </div>
             </div>
         </div>
 
-        <div class="flex items-center space-x-4">
-            <!-- Zoom Controls (Pill) -->
-            <div class="flex items-center bg-gray-100 dark:bg-black/20 rounded-lg p-0.5">
-                <button id="zoom-out"
-                    class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white dark:hover:bg-gray-600 shadow-sm transition-all focus:outline-none">
-                    <i class="ph ph-minus text-xs"></i>
+        <div class="flex items-center space-x-2">
+            <!-- Export Dropdown -->
+            <div class="relative group">
+                <button id="share-menu-btn"
+                    class="px-2 py-1 rounded-md text-xs font-medium bg-white dark:bg-apple-surface border border-gray-200 dark:border-apple-border text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-apple-element transition-colors flex items-center gap-1 shadow-sm">
+                    <i class="ph ph-export text-xs"></i>
+                    <span>Export</span>
                 </button>
-                <span id="zoom-label"
-                    class="text-xs font-medium w-10 text-center text-gray-500 dark:text-gray-400 select-none">100%</span>
-                <button id="zoom-in"
-                    class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white dark:hover:bg-gray-600 shadow-sm transition-all focus:outline-none">
-                    <i class="ph ph-plus text-xs"></i>
-                </button>
+                <!-- Dropdown Content -->
+                <div id="share-dropdown"
+                    class="absolute top-full right-0 mt-1 w-48 bg-white dark:bg-apple-surface border border-gray-200 dark:border-apple-border rounded-xl shadow-xl hidden flex flex-col z-50 p-2 animate-fade-in-up">
+
+                    <!-- Size Selection -->
+                    <div class="mb-2">
+                        <div class="text-[10px] uppercase font-bold text-gray-400 mb-1">Size</div>
+                        <div class="flex bg-gray-100 dark:bg-apple-element rounded-lg p-0.5">
+                            <button
+                                class="scale-btn flex-1 py-1 text-[10px] font-medium rounded-md transition-all text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 focus:bg-white dark:focus:bg-[#48484A] focus:shadow-sm focus:text-blue-500"
+                                data-scale="1">1x</button>
+                            <button
+                                class="scale-btn flex-1 py-1 text-[10px] font-medium rounded-md transition-all text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 focus:bg-white dark:focus:bg-[#48484A] focus:shadow-sm focus:text-blue-500"
+                                data-scale="2">2x</button>
+                            <button
+                                class="scale-btn flex-1 py-1 text-[10px] font-medium rounded-md transition-all text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 focus:bg-white dark:focus:bg-[#48484A] focus:shadow-sm focus:text-blue-500"
+                                data-scale="4">4x</button>
+                            <button
+                                class="scale-btn flex-1 py-1 text-[10px] font-medium rounded-md transition-all text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 focus:bg-white dark:focus:bg-[#48484A] focus:shadow-sm focus:text-blue-500"
+                                data-scale="8">8x</button>
+                        </div>
+                    </div>
+
+                    <div class="h-px bg-gray-100 dark:bg-apple-border my-1"></div>
+
+                    <!-- Format Selection -->
+                    <div>
+                        <div class="text-[10px] uppercase font-bold text-gray-400 mb-1 mt-1">Format</div>
+                        <button data-type="png"
+                            class="w-full text-left px-2 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-apple-element text-xs font-medium transition-colors text-gray-700 dark:text-gray-200 flex justify-between items-center group/item">
+                            <span>PNG</span>
+                            <i class="ph ph-download-simple opacity-0 group-hover/item:opacity-100 text-gray-400"></i>
+                        </button>
+                        <button data-type="jpeg"
+                            class="w-full text-left px-2 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-apple-element text-xs font-medium transition-colors text-gray-700 dark:text-gray-200 flex justify-between items-center group/item">
+                            <span>JPEG</span>
+                            <i class="ph ph-download-simple opacity-0 group-hover/item:opacity-100 text-gray-400"></i>
+                        </button>
+                        <button data-type="json"
+                            class="w-full text-left px-2 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-apple-element text-xs font-medium transition-colors text-gray-700 dark:text-gray-200 flex justify-between items-center group/item">
+                            <span>JSON</span>
+                            <i class="ph ph-file-code opacity-0 group-hover/item:opacity-100 text-gray-400"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
+
+            <div class="w-px h-4 bg-gray-200 dark:bg-apple-border mx-2"></div>
 
             <!-- Theme Toggle -->
             <button id="theme-toggle"
-                class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors focus:outline-none text-gray-500 dark:text-gray-400">
+                class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-apple-element transition-colors focus:outline-none text-gray-500 dark:text-gray-400">
                 <i id="theme-icon-sun" class="ph ph-sun hidden text-lg"></i>
                 <i id="theme-icon-moon" class="ph ph-moon text-lg"></i>
             </button>
         </div>
     </header>
 
-    <div class="flex-1 flex overflow-hidden">
+    <div class="flex-1 flex overflow-hidden relative">
+        <!-- Sidebar Container (Rail + Pane) -->
+        <div class="flex z-10 shrink-0 h-full relative">
+            <!-- Icon Rail -->
+            <nav id="icon-rail"
+                class="w-16 bg-white dark:bg-apple-surface border-r border-gray-200 dark:border-apple-border flex flex-col items-center py-4 space-y-4 z-20">
+
+                <!-- Inspector Icon -->
+                <button data-panel="inspector" data-tooltip="Inspector"
+                    class="rail-item w-12 h-12 flex flex-col items-center justify-center rounded-lg text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-apple-element transition-all active-rail-item gap-0.5">
+                    <i class="ph ph-sliders text-xl"></i>
+                    <span class="text-[9px] font-medium block">Inspector</span>
+                </button>
+
+                <!-- Layers Icon -->
+                <button data-panel="layers" data-tooltip="Layers"
+                    class="rail-item w-12 h-12 flex flex-col items-center justify-center rounded-lg text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-apple-element transition-all gap-0.5">
+                    <i class="ph ph-stack text-xl"></i>
+                    <span class="text-[9px] font-medium block">Layers</span>
+                </button>
+
+                <!-- Assets Icon (Placeholder for future) -->
+                <button data-panel="assets" data-tooltip="Assets"
+                    class="rail-item w-12 h-12 flex flex-col items-center justify-center rounded-lg text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-apple-element transition-all gap-0.5">
+                    <i class="ph ph-shapes text-xl"></i>
+                    <span class="text-[9px] font-medium block">Assets</span>
+                </button>
+            </nav>
+
+            <!-- Side Pane (Content) -->
+            <aside id="left-sidebar"
+                class="w-[240px] bg-white dark:bg-apple-surface border-r border-gray-200 dark:border-apple-border flex flex-col transition-all duration-300 ease-in-out origin-left overflow-hidden relative">
+
+                <!-- Header (Dynamic Title) -->
+                <div
+                    class="h-10 border-b border-gray-200 dark:border-apple-border flex items-center px-4 flex-shrink-0 bg-gray-50/50 dark:bg-apple-element/30">
+                    <h2 id="sidebar-title"
+                        class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Inspector
+                    </h2>
+                </div>
+
+                <!-- Inspector Panel -->
+                <div id="inspector-panel"
+                    class="sidebar-panel flex-1 overflow-y-auto p-4 space-y-6 scrollbar-hide w-full h-full">
+                    <p class="text-sm text-gray-400 text-center mt-20 select-none">No Selection</p>
+                </div>
+
+                <!-- Layers Panel -->
+                <div id="layers-panel" class="sidebar-panel hidden flex-col flex-1 overflow-hidden w-full h-full">
+                    <div id="layers-list" class="flex-1 overflow-y-auto p-2 space-y-1 scrollbar-hide">
+                        <!-- Layer Items will be injected here -->
+                    </div>
+                </div>
+
+                <!-- Assets Panel (Placeholder) -->
+                <div id="assets-panel" class="sidebar-panel hidden flex-col flex-1 overflow-hidden w-full h-full p-4">
+                    <p class="text-sm text-gray-400 text-center mt-10 select-none">Assets Library</p>
+                </div>
+            </aside>
+        </div>
+
+        <!-- Sidebar Toggle Button -->
+        <button id="sidebar-toggle-btn" data-tooltip="Elements"
+            class="absolute top-1/2 left-[240px] z-50 transform -translate-y-1/2 -translate-x-1/2 w-5 h-10 bg-white dark:bg-apple-surface border border-gray-200 dark:border-apple-border rounded-r-md shadow-md flex items-center justify-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-apple-element transition-all duration-300 focus:outline-none overflow-visible group">
+            <i id="sidebar-toggle-icon" class="ph ph-caret-left text-xs group-hover:scale-110 transition-transform"></i>
+        </button>
+
         <!-- Canvas Area (Center) -->
         <main id="workspace-area"
             class="flex-1 relative overflow-hidden flex flex-col items-center justify-center bg-dots z-0">
@@ -138,14 +266,14 @@
             <div
                 class="absolute top-6 left-1/2 transform -translate-x-1/2 z-50 pointer-events-none flex items-center justify-center w-full">
                 <div id="floating-toolbar"
-                    class="pointer-events-auto flex items-center gap-1 bg-white dark:bg-[#2C2C2E] rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-1.5 opacity-0 transition-all duration-300 transform translate-y-2">
+                    class="pointer-events-auto flex items-center gap-1 bg-white dark:bg-apple-surface rounded-2xl shadow-xl border border-gray-200 dark:border-apple-border p-1.5 opacity-0 transition-all duration-300 transform translate-y-2">
                     <!-- Toolbar Actions injected here -->
                 </div>
             </div>
 
             <!-- The actual canvas will be centered here -->
             <div id="canvas-container"
-                class="relative shadow-2xl rounded-sm transition-transform duration-100 ease-linear origin-center cursor-move-grab ring-1 ring-black/5 dark:ring-white/5 bg-white">
+                class="relative shadow-2xl rounded-sm transition-transform duration-100 ease-linear origin-center cursor-move-grab ring-1 ring-black/5 dark:ring-apple-border bg-white">
                 <canvas id="main-canvas" class="block rounded-sm"></canvas>
 
                 <!-- Overlay Interface for selection/handles -->
@@ -154,50 +282,71 @@
                 </div>
             </div>
 
+            <!-- Bottom Right Controls Group -->
+            <div class="absolute bottom-4 right-4 flex items-center gap-3 z-30">
+                <!-- Zoom Controls (Moved) -->
+                <div
+                    class="flex items-center bg-white dark:bg-apple-surface border border-gray-200 dark:border-apple-border rounded-lg p-0.5 shadow-lg">
+                    <button id="zoom-out"
+                        class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-gray-100 dark:hover:bg-apple-element transition-all focus:outline-none text-gray-600 dark:text-gray-300">
+                        <i class="ph ph-minus text-xs"></i>
+                    </button>
+                    <button id="zoom-value-btn"
+                        class="px-1 text-xs font-mono font-medium w-12 text-center text-gray-500 dark:text-gray-400 select-none hover:text-blue-500 transition-colors">
+                        <span id="zoom-label">100%</span>
+                    </button>
+                    <button id="zoom-in"
+                        class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-gray-100 dark:hover:bg-apple-element transition-all focus:outline-none text-gray-600 dark:text-gray-300">
+                        <i class="ph ph-plus text-xs"></i>
+                    </button>
+                </div>
+            </div>
+
             <!-- Canvas Size Footer -->
             <div
-                class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white dark:bg-[#2C2C2E] pl-2 pr-4 py-1.5 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 flex items-center space-x-3 z-30">
+                class="absolute bottom-4 left-4 bg-white dark:bg-apple-surface pl-2 pr-3 py-1 rounded-lg shadow-lg border border-gray-200 dark:border-apple-border flex items-center space-x-2 z-30 scale-90 origin-bottom-left">
 
                 <!-- Presets Dropdown -->
                 <div class="relative group">
                     <button id="preset-trigger"
-                        class="flex items-center space-x-1 text-[10px] uppercase font-bold text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">
-                        <span>Preset</span>
+                        class="flex items-center space-x-1 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-apple-element transition-colors">
+                        <i class="ph ph-layout text-lg"></i>
                         <i class="ph ph-caret-down text-xs"></i>
                     </button>
                     <!-- Popover -->
                     <div
-                        class="absolute bottom-full left-0 mb-2 w-48 bg-white dark:bg-[#1C1C1E] border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl py-1 hidden group-hover:block animate-fade-in-up">
+                        class="absolute bottom-full left-0 mb-2 w-48 bg-white dark:bg-apple-surface border border-gray-200 dark:border-apple-border rounded-lg shadow-xl py-1 hidden group-hover:block animate-fade-in-up">
                         <div class="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Social
                             Media</div>
                         <button
-                            class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
+                            class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-apple-element text-gray-700 dark:text-gray-200"
                             onclick="window.setCanvasSize(1080, 1080)">Instagram Post</button>
                         <button
-                            class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
+                            class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-apple-element text-gray-700 dark:text-gray-200"
                             onclick="window.setCanvasSize(1080, 1920)">Instagram Story</button>
                         <button
-                            class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
+                            class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-apple-element text-gray-700 dark:text-gray-200"
                             onclick="window.setCanvasSize(1920, 1080)">FHD (1920x1080)</button>
-                        <div class="h-px bg-gray-100 dark:bg-gray-800 my-1"></div>
+                        <div class="h-px bg-gray-100 dark:bg-apple-border my-1"></div>
                         <div class="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Print
                         </div>
                         <button
-                            class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
+                            class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-apple-element text-gray-700 dark:text-gray-200"
                             onclick="window.setCanvasSize(2480, 3508)">A4</button>
                     </div>
                 </div>
 
-                <div class="w-px h-4 bg-gray-200 dark:bg-gray-700"></div>
+                <div class="w-px h-4 bg-gray-200 dark:bg-apple-border"></div>
 
                 <!-- Dimensions -->
-                <div class="flex items-center space-x-1 text-xs font-mono text-gray-600 dark:text-gray-300">
+                <div
+                    class="flex items-center space-x-1 text-[10px] font-mono font-medium text-gray-600 dark:text-gray-300">
                     <input id="canvas-w" type="number"
-                        class="w-12 bg-transparent text-right focus:outline-none focus:text-blue-500 hover:text-blue-500 transition-colors p-0 border-b border-transparent focus:border-blue-500"
+                        class="w-8 bg-transparent text-right focus:outline-none focus:text-blue-500 hover:text-blue-500 transition-colors p-0 border-b border-transparent focus:border-blue-500 font-mono"
                         value="1080">
                     <span class="text-gray-300 dark:text-gray-600 px-1">×</span>
                     <input id="canvas-h" type="number"
-                        class="w-12 bg-transparent text-left focus:outline-none focus:text-blue-500 hover:text-blue-500 transition-colors p-0 border-b border-transparent focus:border-blue-500"
+                        class="w-8 bg-transparent text-left focus:outline-none focus:text-blue-500 hover:text-blue-500 transition-colors p-0 border-b border-transparent focus:border-blue-500 font-mono"
                         value="1080">
                 </div>
 
@@ -210,68 +359,162 @@
                     </button>
                     <!-- Popover -->
                     <div
-                        class="absolute bottom-full right-0 mb-2 w-16 bg-white dark:bg-[#1C1C1E] border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl py-1 hidden group-hover:block animate-fade-in-up">
+                        class="absolute bottom-full right-0 mb-2 w-16 bg-white dark:bg-apple-surface border border-gray-200 dark:border-apple-border rounded-lg shadow-xl py-1 hidden group-hover:block animate-fade-in-up">
                         <button
-                            class="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
+                            class="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 dark:hover:bg-apple-element text-gray-700 dark:text-gray-200"
                             onclick="window.setUnit('px')">PX</button>
                         <button
-                            class="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
+                            class="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 dark:hover:bg-apple-element text-gray-700 dark:text-gray-200"
                             onclick="window.setUnit('in')">IN</button>
                         <button
-                            class="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
+                            class="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 dark:hover:bg-apple-element text-gray-700 dark:text-gray-200"
                             onclick="window.setUnit('mm')">MM</button>
                     </div>
                 </div>
             </div>
         </main>
 
-        <!-- Right Sidebar (Inspector & Layers) -->
-        <aside
-            class="w-[280px] bg-white dark:bg-[#2C2C2E] border-l border-gray-200 dark:border-gray-700 flex flex-col z-10 shrink-0">
+        <!-- Toast Container -->
+        <div id="toast-container"
+            class="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 flex flex-col items-center space-y-2 pointer-events-none">
+        </div>
 
-            <!-- Inspector (Top) -->
-            <div class="flex-1 flex flex-col overflow-hidden min-h-0">
-                <div id="inspector-panel" class="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-hide">
-                    <p class="text-sm text-gray-400 text-center mt-20 select-none">No Selection</p>
-                </div>
-            </div>
+        <!-- Custom Context Menu -->
+        <div id="context-menu"
+            class="fixed hidden bg-white dark:bg-apple-surface border border-gray-200 dark:border-apple-border shadow-lg rounded-md py-1 min-w-[160px] z-50 text-sm">
+            <button data-action="bring-front"
+                class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-apple-element">Bring to Front</button>
+            <button data-action="send-back"
+                class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-apple-element">Send
+                to Back</button>
+            <div class="h-px bg-gray-200 dark:bg-apple-border my-1"></div>
+            <button data-action="duplicate"
+                class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-apple-element">Duplicate</button>
+            <button data-action="delete"
+                class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-apple-element text-red-500">Delete</button>
+        </div>
 
-            <!-- Layers (Bottom) -->
+        <!-- Controls Modal -->
+        <div id="controls-modal"
+            class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-black/20 backdrop-blur-sm">
             <div
-                class="flex flex-col h-[40%] min-h-[180px] border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-black/20">
-                <div id="layers-header"
-                    class="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider text-gray-400 select-none flex justify-between items-center cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
-                    <span>Layers</span>
-                    <i class="ph ph-caret-down text-lg transition-transform duration-200" id="layers-toggle-icon"></i>
+                class="bg-white dark:bg-apple-surface border border-gray-200 dark:border-apple-border rounded-2xl shadow-2xl w-[500px] overflow-hidden flex flex-col max-h-[85vh]">
+                <!-- Header -->
+                <div
+                    class="px-6 py-4 border-b border-gray-100 dark:border-apple-border flex justify-between items-center bg-gray-50/50 dark:bg-apple-element/30">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ph ph-keyboard text-blue-500"></i> Keyboard Controls
+                    </h3>
+                    <button id="close-controls"
+                        class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-200 dark:hover:bg-apple-element transition-colors text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                        <i class="ph ph-x"></i>
+                    </button>
                 </div>
-                <div id="layers-panel" class="flex-1 overflow-y-auto p-2 space-y-1 scrollbar-hide">
-                    <!-- Layer Items will be injected here -->
+
+                <!-- Content -->
+                <div class="flex-1 overflow-y-auto p-6 space-y-6">
+
+                    <!-- Section -->
+                    <div>
+                        <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Essentials</h4>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div
+                                class="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-apple-element/50 border border-gray-100 dark:border-white/5">
+                                <span class="text-sm font-medium">Undo</span>
+                                <kbd
+                                    class="px-2 py-1 text-xs font-mono bg-white dark:bg-apple-surface rounded border border-gray-200 dark:border-apple-border shadow-sm">⌘
+                                    Z</kbd>
+                            </div>
+                            <div
+                                class="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-apple-element/50 border border-gray-100 dark:border-white/5">
+                                <span class="text-sm font-medium">Redo</span>
+                                <kbd
+                                    class="px-2 py-1 text-xs font-mono bg-white dark:bg-apple-surface rounded border border-gray-200 dark:border-apple-border shadow-sm">⇧
+                                    ⌘ Z</kbd>
+                            </div>
+                            <div
+                                class="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-apple-element/50 border border-gray-100 dark:border-white/5">
+                                <span class="text-sm font-medium">Save</span>
+                                <kbd
+                                    class="px-2 py-1 text-xs font-mono bg-white dark:bg-apple-surface rounded border border-gray-200 dark:border-apple-border shadow-sm">Auto</kbd>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section -->
+                    <div>
+                        <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Tools & Selection</h4>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div
+                                class="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-apple-element/50 border border-gray-100 dark:border-white/5">
+                                <span class="text-sm font-medium">Select All</span>
+                                <kbd
+                                    class="px-2 py-1 text-xs font-mono bg-white dark:bg-apple-surface rounded border border-gray-200 dark:border-apple-border shadow-sm">⌘
+                                    A</kbd>
+                            </div>
+                            <div
+                                class="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-apple-element/50 border border-gray-100 dark:border-white/5">
+                                <span class="text-sm font-medium">Deselect</span>
+                                <kbd
+                                    class="px-2 py-1 text-xs font-mono bg-white dark:bg-apple-surface rounded border border-gray-200 dark:border-apple-border shadow-sm">Esc</kbd>
+                            </div>
+                            <div
+                                class="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-apple-element/50 border border-gray-100 dark:border-white/5">
+                                <span class="text-sm font-medium">Copy</span>
+                                <kbd
+                                    class="px-2 py-1 text-xs font-mono bg-white dark:bg-apple-surface rounded border border-gray-200 dark:border-apple-border shadow-sm">⌘
+                                    C</kbd>
+                            </div>
+                            <div
+                                class="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-apple-element/50 border border-gray-100 dark:border-white/5">
+                                <span class="text-sm font-medium">Paste</span>
+                                <kbd
+                                    class="px-2 py-1 text-xs font-mono bg-white dark:bg-apple-surface rounded border border-gray-200 dark:border-apple-border shadow-sm">⌘
+                                    V</kbd>
+                            </div>
+                            <div
+                                class="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-apple-element/50 border border-gray-100 dark:border-white/5">
+                                <span class="text-sm font-medium">Delete</span>
+                                <kbd
+                                    class="px-2 py-1 text-xs font-mono bg-white dark:bg-apple-surface rounded border border-gray-200 dark:border-apple-border shadow-sm">⌫</kbd>
+                            </div>
+                            <div
+                                class="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-apple-element/50 border border-gray-100 dark:border-white/5">
+                                <span class="text-sm font-medium">Duplicate</span>
+                                <kbd
+                                    class="px-2 py-1 text-xs font-mono bg-white dark:bg-apple-surface rounded border border-gray-200 dark:border-apple-border shadow-sm">Alt
+                                    Drag</kbd>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section -->
+                    <div>
+                        <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">View</h4>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div
+                                class="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-apple-element/50 border border-gray-100 dark:border-white/5">
+                                <span class="text-sm font-medium">Pan</span>
+                                <kbd
+                                    class="px-2 py-1 text-xs font-mono bg-white dark:bg-apple-surface rounded border border-gray-200 dark:border-apple-border shadow-sm">Space
+                                    + Drag</kbd>
+                            </div>
+                            <div
+                                class="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-apple-element/50 border border-gray-100 dark:border-white/5">
+                                <span class="text-sm font-medium">Zoom</span>
+                                <kbd
+                                    class="px-2 py-1 text-xs font-mono bg-white dark:bg-apple-surface rounded border border-gray-200 dark:border-apple-border shadow-sm">Ctrl
+                                    Scroll</kbd>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
-        </aside>
-    </div>
+        </div>
 
-    <!-- Toast Container -->
-    <div id="toast-container"
-        class="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 flex flex-col items-center space-y-2 pointer-events-none">
-    </div>
-
-    <!-- Custom Context Menu -->
-    <div id="context-menu"
-        class="fixed hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg rounded-md py-1 min-w-[160px] z-50 text-sm">
-        <button data-action="bring-front"
-            class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">Bring to Front</button>
-        <button data-action="send-back" class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">Send
-            to Back</button>
-        <div class="h-px bg-gray-200 dark:bg-gray-700 my-1"></div>
-        <button data-action="duplicate"
-            class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">Duplicate</button>
-        <button data-action="delete"
-            class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-red-500">Delete</button>
-    </div>
-
-    <!-- Scripts -->
-    <script type="module" src="js/main.js"></script>
+        <!-- Scripts -->
+        <script type="module" src="js/main.js"></script>
 </body>
 
 </html>
